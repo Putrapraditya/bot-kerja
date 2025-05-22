@@ -2,6 +2,9 @@ const { Client, LocalAuth } = require('whatsapp-web.js');
 const qrcode = require('qrcode-terminal');
 const fs = require('fs');
 
+// Log saat aplikasi pertama kali dijalankan
+console.log(`[${new Date().toLocaleString()}] WhatsApp Bot sedang berjalan...`);
+
 // File untuk menyimpan data nomor yang sudah dikirimi pesan
 const DATA_FILE = 'sent_numbers.json';
 
@@ -45,11 +48,11 @@ function isOutsideWorkingHours() {
     const hours = now.getHours();
     const minutes = now.getMinutes();
     
-    // Jam kerja 09:00 - 15:00
-    const before9 = hours < 10 || (hours === 10 && minutes < 0);
-    const after15 = hours > 18 || (hours === 18 && minutes > 0);
+    // Jam kerja 09:00 - 18:00
+    const before9 = hours < 9;
+    const after18 = hours > 18 || (hours === 18 && minutes > 0);
     
-    return before9 || after15;
+    return before9 || after18;
 }
 
 // Inisialisasi client WhatsApp
@@ -68,27 +71,23 @@ client.on('qr', qr => {
 
 // Saat client ready
 client.on('ready', () => {
-    console.log('Client is ready!');
+    console.log(`[${new Date().toLocaleString()}] Client WhatsApp siap digunakan!`);
 });
 
 // Tangani pesan masuk
 client.on('message', async message => {
-    // Dapatkan nomor pengirim (tanpa @c.us)
     const phoneNumber = message.from.split('@')[0];
-    // Abaikan jika nomor ada di daftar NOMOR_DIKECUALIKAN
+
     if (NOMOR_DIKECUALIKAN.includes(phoneNumber)) {
         console.log(`Pesan dari ${phoneNumber} diabaikan`);
         return;
     }
-    // Abaikan jika pesan berasal dari grup
+
     if (message.from.includes('@g.us')) {
         try {
-            // Dapatkan info grup
             const chat = await message.getChat();
             if (chat.isGroup) {
                 const sender = await message.getContact();
-                const clientInfo = client.info; // Informasi tentang client/bot
-                 
                 console.log('\n==================================');
                 console.log(`[${new Date().toLocaleString()}] Pesan dari grup:`);
                 console.log(`Nama Grup: ${chat.name}`);
@@ -102,15 +101,11 @@ client.on('message', async message => {
         }
         return;
     }
-    
-    
-    // Periksa apakah di luar jam kerja dan belum dikirimi pesan hari ini
+
     if (isOutsideWorkingHours() && canSendMessage(phoneNumber)) {
-        // Kirim pesan balasan
-                const replyMessage = `⚠️ Saat ini Anda menghubungi di luar jam operasional (09:00 - 18:00) ⚠️\n\nMohon maaf jika terdapat keterlambatan dalam merespons pesan Anda.\n\nTerima kasih atas pengertiannya.`;
+        const replyMessage = `⚠️ Saat ini Anda menghubungi di luar jam operasional (09:00 - 18:00) ⚠️\n\nMohon maaf jika terdapat keterlambatan dalam merespons pesan Anda.\n\nTerima kasih atas pengertiannya.`;
         await message.reply(replyMessage);
         
-        // Update data terakhir dikirim
         sentNumbers[phoneNumber] = new Date().toISOString();
         saveData();
         
