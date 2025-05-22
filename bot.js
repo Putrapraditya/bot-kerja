@@ -46,7 +46,7 @@ function isOutsideWorkingHours() {
     const minutes = now.getMinutes();
     
     // Jam kerja 09:00 - 15:00
-    const before9 = hours < 9 || (hours === 9 && minutes < 0);
+    const before9 = hours < 10 || (hours === 10 && minutes < 0);
     const after15 = hours > 18 || (hours === 18 && minutes > 0);
     
     return before9 || after15;
